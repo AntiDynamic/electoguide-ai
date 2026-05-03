@@ -1,0 +1,72 @@
+/* ── Markdown-style formatting in chat bubbles ── */
+.msg-bubble strong { font-weight:700; color:var(--text-primary); }
+.msg-bubble em { font-style:italic; color:var(--accent); }
+.msg-bubble ul, .msg-bubble ol { padding-left:20px; margin:8px 0; }
+.msg-bubble li { margin:4px 0; }
+.msg-bubble code {
+  background:rgba(255,255,255,0.07); padding:2px 8px;
+  border-radius:4px; font-family:monospace; font-size:13px;
+}
+.msg-bubble h3 { font-size:16px; font-weight:700; margin:10px 0 6px; color:var(--accent); }
+.msg-bubble blockquote {
+  border-left:3px solid var(--accent); padding-left:12px;
+  color:var(--text-secondary); margin:8px 0; font-style:italic;
+}
+.msg-bubble p { margin:6px 0; }
+/* Suggested questions below AI response */
+.suggestions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.suggestion-chip {
+  padding:6px 12px; border-radius:20px; border:1px solid var(--border);
+  background:rgba(79,172,254,0.07); color:var(--accent);
+  font-size:12px; cursor:pointer; transition:var(--transition);
+}
+.suggestion-chip:hover { background:rgba(79,172,254,0.15); }
+
+/* ── Quick-action cards on chat page ── */
+.quick-actions {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-bottom:20px;
+}
+.quick-card {
+  padding:16px 18px; border-radius:var(--radius-sm); border:1px solid var(--border);
+  background:var(--bg-card); cursor:pointer; transition:var(--transition);
+  display:flex; align-items:center; gap:12px;
+}
+.quick-card:hover { border-color:var(--accent); background:var(--bg-card-hover); transform:translateY(-2px); }
+.quick-card .qicon { font-size:22px; }
+.quick-card .qtext h5 { font-size:13px; font-weight:600; margin-bottom:2px; }
+.quick-card .qtext p { font-size:11px; color:var(--text-secondary); }
+
+/* ── Journey page ─ country selector ── */
+.journey-country-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:28px;
+}
+.journey-country-btn {
+  padding:14px 12px; border-radius:var(--radius-sm); border:1px solid var(--border);
+  background:var(--bg-card); cursor:pointer; text-align:center;
+  transition:var(--transition); display:flex; flex-direction:column;
+  align-items:center; gap:6px;
+}
+.journey-country-btn:hover, .journey-country-btn.active {
+  border-color:var(--accent); background:rgba(99,179,237,0.07);
+}
+.journey-country-btn .flag { font-size:26px; }
+.journey-country-btn span { font-size:12px; color:var(--text-secondary); font-weight:500; }
+
+/* ── Info tags ── */
+.info-tags { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; }
+.info-tag {
+  padding:5px 12px; border-radius:20px;
+  background:rgba(255,255,255,0.05); border:1px solid var(--border);
+  font-size:12px; color:var(--text-secondary);
+}
+.info-tag strong { color:var(--text-primary); }
+
+/* ── Typing indicator ── */
+.typing-indicator { display:flex; gap:5px; align-items:center; padding:4px 0; }
+.typing-dot {
+  width:8px; height:8px; border-radius:50%; background:var(--accent);
+  animation:bounce .9s infinite ease-in-out;
+}
+.typing-dot:nth-child(2){animation-delay:.15s}
+.typing-dot:nth-child(3){animation-delay:.3s}
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="description" content="ElectoGuide AI — Your intelligent election education assistant. Learn about voter registration, election timelines, and civic participation worldwide."/>
+<meta name="theme-color" content="#080c14"/>
+<title>ElectoGuide AI — Election Education Assistant</title>
+<link rel="stylesheet" href="/static/style.css"/>
+<link rel="stylesheet" href="/static/extra.css"/>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────────────────────────── -->
+<nav id="nav" role="navigation" aria-label="Main navigation">
+  <div class="nav-logo">
+    <span>🗳️</span>
+    <span>ElectoGuide <em style="font-style:normal;background:linear-gradient(135deg,#4facfe,#00f2fe);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">AI</em></span>
+  </div>
+  <div class="nav-links" role="menubar">
+    <button class="nav-link" data-page="page-home"      role="menuitem">🏠 Home</button>
+    <button class="nav-link" data-page="page-chat"      role="menuitem">💬 Ask AI</button>
+    <button class="nav-link" data-page="page-countries" role="menuitem">🌍 Countries</button>
+    <button class="nav-link" data-page="page-journey"   role="menuitem">🗺️ Journey</button>
+    <button class="nav-link" data-page="page-quiz"      role="menuitem">🧠 Quiz</button>
+    <button class="nav-link" data-page="page-factcheck" role="menuitem">🔍 Fact Check</button>
+  </div>
+  <div class="nav-right">
+    <span style="font-size:12px;color:var(--text-muted)">Powered by Gemini</span>
+  </div>
+</nav>
+
+<!-- ── Accessibility Bar ──────────────────────────────────────────────────── -->
+<aside id="a11y-bar" aria-label="Accessibility controls">
+  <button id="a11y-tts"      class="a11y-btn active" title="Toggle voice narration" aria-label="Toggle voice narration">🔊</button>
+  <button id="a11y-contrast" class="a11y-btn"        title="Toggle high contrast"   aria-label="Toggle high contrast">🌓</button>
+  <button id="a11y-font"     class="a11y-btn"        title="Toggle large font"      aria-label="Toggle large font">🔤</button>
+  <button id="a11y-stop"     class="a11y-btn"        title="Stop speech"            aria-label="Stop speech">⏹</button>
+</aside>
+
+<!-- ── App ────────────────────────────────────────────────────────────────── -->
+<main id="app" role="main">
+
+  <!-- HOME / HERO ─────────────────────────────────────────────────────────── -->
+  <section id="page-home" class="page" aria-label="Home">
+    <div id="hero">
+      <div class="hero-eyebrow">🗳️ Google Cloud · Gemini AI · Election Education</div>
+      <h1 class="hero-title">Your Guide to<br/><em>Every Vote, Every Voice</em></h1>
+      <p class="hero-sub">An AI-powered assistant that makes understanding elections simple, interactive, and empowering — for every citizen, everywhere.</p>
+      <div class="hero-cta">
+        <button id="hero-start-btn" class="btn btn-primary" aria-label="Start chatting with ElectoGuide AI">💬 Ask ElectoGuide AI</button>
+        <button id="hero-explore-btn" class="btn btn-ghost" aria-label="Explore election systems">🌍 Explore Countries</button>
+      </div>
+
+      <div class="stats-row" style="margin-top:56px;max-width:700px">
+        <div class="stat-card"><div class="num">30+</div><div class="lbl">Democracies Covered</div></div>
+        <div class="stat-card"><div class="num">5</div><div class="lbl">User Personas</div></div>
+        <div class="stat-card"><div class="num">∞</div><div class="lbl">Questions Answered</div></div>
+        <div class="stat-card"><div class="num">100%</div><div class="lbl">Nonpartisan</div></div>
+      </div>
+
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:20px;margin-top:56px;color:var(--text-secondary)">Who are you today?</h2>
+      <div class="persona-grid">
+        <div class="persona-card selected" data-persona="general" tabindex="0" role="button" aria-pressed="true">
+          <div class="icon">👤</div><h4>General</h4><p>Curious citizen</p>
+        </div>
+        <div class="persona-card" data-persona="student" tabindex="0" role="button" aria-pressed="false">
+          <div class="icon">📚</div><h4>Student</h4><p>Learning civics</p>
+        </div>
+        <div class="persona-card" data-persona="first_voter" tabindex="0" role="button" aria-pressed="false">
+          <div class="icon">🗳️</div><h4>First Voter</h4><p>Ready to participate</p>
+        </div>
+        <div class="persona-card" data-persona="researcher" tabindex="0" role="button" aria-pressed="false">
+          <div class="icon">🔬</div><h4>Researcher</h4><p>In-depth analysis</p>
+        </div>
+        <div class="persona-card" data-persona="senior" tabindex="0" role="button" aria-pressed="false">
+          <div class="icon">🧓</div><h4>Senior</h4><p>Clear guidance</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHAT ────────────────────────────────────────────────────────────────── -->
+  <section id="page-chat" class="page" aria-label="AI Chat">
+    <h1 class="section-title">Ask ElectoGuide AI</h1>
+    <p class="section-sub">Ask anything about elections, voting, registration, or civic participation.</p>
+
+    <div class="persona-pill-row" id="persona-pills" role="group" aria-label="Select your persona"></div>
+
+    <div class="quick-actions" id="quick-actions" aria-label="Quick questions"></div>
+
+    <div id="chat-container" role="log" aria-live="polite" aria-label="Chat conversation">
+      <div id="chat-messages"></div>
+      <div id="chat-input-area">
+        <textarea id="chat-input" placeholder="Ask me anything about elections…" rows="1"
+          aria-label="Type your message" aria-multiline="true"></textarea>
+        <button id="chat-send" aria-label="Send message">➤</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- COUNTRIES ───────────────────────────────────────────────────────────── -->
+  <section id="page-countries" class="page" aria-label="Country Explorer">
+    <h1 class="section-title">🌍 Election Systems Around the World</h1>
+    <p class="section-sub">Click any country to explore its election system, timeline, and voter steps — powered by Gemini AI.</p>
+    <div id="countries-grid" class="countries-grid" role="list" aria-label="Country list"></div>
+  </section>
+
+  <!-- VOTER JOURNEY ───────────────────────────────────────────────────────── -->
+  <section id="page-journey" class="page" aria-label="Voter Journey">
+    <h1 class="section-title">🗺️ Your Voter Journey</h1>
+    <p class="section-sub">Select a country to get a personalized, step-by-step voting guide tailored to your persona.</p>
+    <div id="journey-country-grid" class="journey-country-grid" aria-label="Select a country"></div>
+    <div id="journey-steps" class="journey-steps" aria-live="polite">
+      <p style="color:var(--text-secondary);text-align:center;padding:40px">👆 Select a country above to generate your personalized voter journey</p>
+    </div>
+  </section>
+
+  <!-- QUIZ ────────────────────────────────────────────────────────────────── -->
+  <section id="page-quiz" class="page" aria-label="Election Quiz">
+    <h1 class="section-title">🧠 Civic Knowledge Quiz</h1>
+    <p class="section-sub">Test your election knowledge with AI-generated adaptive questions.</p>
+
+    <div id="quiz-start" class="quiz-start glass" style="padding:40px">
+      <p style="font-size:17px;margin-bottom:28px;color:var(--text-secondary)">Choose a topic and difficulty to begin your personalized quiz:</p>
+      <div style="margin-bottom:20px">
+        <label for="quiz-difficulty" style="font-size:14px;font-weight:600;display:block;margin-bottom:8px">Difficulty</label>
+        <select id="quiz-difficulty" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:10px 16px;border-radius:8px;font-size:14px;outline:none" aria-label="Select quiz difficulty">
+          <option value="easy">🟢 Easy</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="hard">🔴 Hard</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">
+        <button class="btn btn-primary" data-quiz-topic="general">🗳️ General Elections</button>
+        <button class="btn btn-ghost"   data-quiz-topic="voter_registration">📋 Voter Registration</button>
+        <button class="btn btn-ghost"   data-quiz-topic="electoral_systems">🏛️ Electoral Systems</button>
+        <button class="btn btn-ghost"   data-quiz-topic="election_timeline">📅 Election Timeline</button>
+        <button class="btn btn-ghost"   data-quiz-topic="civic_rights">⚖️ Civic Rights</button>
+        <button class="btn btn-ghost"   data-quiz-topic="election_security">🔒 Election Security</button>
+      </div>
+    </div>
+
+    <div id="quiz-loading" style="display:none;text-align:center;padding:60px">
+      <div class="spinner"></div>
+      <p style="margin-top:20px;color:var(--text-secondary)">Generating your quiz with Gemini AI<span class="loading-dots"></span></p>
+    </div>
+
+    <div id="quiz-game" style="display:none;max-width:700px;margin:0 auto">
+      <div class="quiz-progress" aria-label="Quiz progress">
+        <div id="quiz-progress-fill" class="quiz-progress-fill" role="progressbar"></div>
+      </div>
+      <p id="quiz-q-num" style="color:var(--text-secondary);font-size:13px;font-weight:600;margin-bottom:16px"></p>
+      <h2 id="quiz-question" style="font-size:20px;font-weight:700;margin-bottom:20px;line-height:1.4"></h2>
+      <div id="quiz-options" class="quiz-options" role="group" aria-label="Answer options"></div>
+      <div id="quiz-explanation" class="quiz-explanation" style="display:none" aria-live="polite"></div>
+      <button id="quiz-next-btn" class="btn btn-primary" style="display:none;margin-top:16px">Next →</button>
+    </div>
+
+    <div id="quiz-result" style="display:none;text-align:center;padding:40px" aria-live="polite">
+      <h2 style="font-family:'Space Grotesk',sans-serif;font-size:24px;margin-bottom:24px">Quiz Complete! 🎉</h2>
+      <div id="score-ring" class="score-ring"><span id="score-text"></span></div>
+      <p id="score-msg" style="font-size:18px;margin-bottom:28px;color:var(--text-secondary)"></p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button id="quiz-restart-btn" class="btn btn-primary">🔄 Try Another Quiz</button>
+        <button class="btn btn-ghost" onclick="navigateTo('page-chat')">💬 Discuss with AI</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FACT CHECK ──────────────────────────────────────────────────────────── -->
+  <section id="page-factcheck" class="page" aria-label="Fact Checker">
+    <h1 class="section-title">🔍 Election Myth Buster</h1>
+    <p class="section-sub">Submit any election claim and our AI will verify it with evidence and explain the facts.</p>
+
+    <div style="margin-bottom:16px">
+      <p style="font-size:14px;color:var(--text-secondary);margin-bottom:10px;font-weight:600">💡 Try an example:</p>
+      <div id="myth-examples" class="myth-examples" aria-label="Example myths to check"></div>
+    </div>
+
+    <textarea id="factcheck-input" rows="3" placeholder="Enter an election claim to fact-check… e.g. 'Dead people regularly vote in elections.'"
+      aria-label="Enter claim to fact-check"></textarea>
+    <button id="factcheck-btn" class="btn btn-primary" aria-label="Fact-check this claim">🔍 Check this Claim</button>
+
+    <div id="factcheck-result" style="margin-top:24px" aria-live="polite"></div>
+  </section>
+
+</main>
+
+<!-- Country Modal ─────────────────────────────────────────────────────────── -->
+<div id="country-modal" role="dialog" aria-modal="true" aria-label="Country election information">
+  <div class="modal-card" id="modal-content"></div>
+</div>
+
+<!-- Toast ────────────────────────────────────────────────────────────────── -->
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
