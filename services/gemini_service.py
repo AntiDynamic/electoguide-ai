@@ -110,6 +110,7 @@ def _config(
     response_mime_type: str = "text/plain",
     temperature: float = 0.7,
     max_output_tokens: int = 1024,
+    tools: list[Any] | None = None,
 ) -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
         temperature=temperature,
@@ -118,6 +119,7 @@ def _config(
         system_instruction=system_instruction,
         safety_settings=SAFETY_SETTINGS,
         response_mime_type=response_mime_type,
+        tools=tools,
     )
 
 
@@ -174,7 +176,12 @@ async def generate_chat_response(
     if entities:
         system += f"\n\nKey topics detected in the user's message: {', '.join(entities)}. Ensure your response addresses these specifically."
 
-    config = _config(system, temperature=0.7, max_output_tokens=1024)
+    config = _config(
+        system, 
+        temperature=0.7, 
+        max_output_tokens=1024,
+        tools=[{"google_search": {}}]
+    )
 
     # Build Gemini history
     contents = []
@@ -237,9 +244,10 @@ async def fact_check_claim(claim: str) -> dict[str, Any]:
     client = _get_client()
     config = _config(
         BASE_SYSTEM_PROMPT,
-        response_mime_type="application/json",
+        response_mime_type="text/plain",
         temperature=0.2,
         max_output_tokens=2048,
+        tools=[{"google_search": {}}]
     )
 
     prompt = f"""You are a nonpartisan election fact-checker. Analyse this claim:

@@ -35,6 +35,17 @@ body {
   line-height:1.6;
 }
 
+/* ── Ambient Background Blobs ── */
+.bg-blobs { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+.blob { position:absolute; border-radius:50%; filter:blur(100px); opacity:0.5; animation:floatBlob 20s infinite ease-in-out alternate; }
+.blob-1 { top:-10%; left:-10%; width:600px; height:600px; background:var(--grad3); animation-delay:0s; }
+.blob-2 { bottom:-20%; right:-10%; width:700px; height:700px; background:var(--grad1); animation-delay:-5s; }
+.blob-3 { top:30%; left:50%; width:500px; height:500px; background:var(--grad2); animation-delay:-10s; }
+@keyframes floatBlob {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(150px, 80px) scale(1.2); }
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
@@ -42,10 +53,12 @@ body {
 
 /* ── Utility ── */
 .glass {
-  background:var(--bg-card);
-  backdrop-filter:blur(20px);
-  border:1px solid var(--border);
+  background:rgba(255,255,255,0.03);
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+  border:1px solid rgba(255,255,255,0.1);
   border-radius:var(--radius);
+  box-shadow:0 8px 32px rgba(0,0,0,0.2);
 }
 .glass:hover { background:var(--bg-card-hover); }
 .btn {
@@ -139,7 +152,7 @@ body {
   min-height:calc(100vh - 64px);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   text-align:center; padding:40px 20px; position:relative; overflow:hidden;
-  background:var(--grad-hero);
+  background:transparent;
 }
 #hero::before {
   content:''; position:absolute; inset:0;
@@ -171,8 +184,12 @@ body {
   gap:14px; max-width:700px; margin:48px auto 0; animation:fadeIn .6s ease 1s both;
 }
 .persona-card {
-  padding:18px 14px; border-radius:var(--radius); border:1px solid var(--border);
-  background:var(--bg-card); cursor:pointer; transition:var(--transition); text-align:center;
+  padding:18px 14px; border-radius:var(--radius); 
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.03); 
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  cursor:pointer; transition:var(--transition); text-align:center;
+  box-shadow:0 8px 32px rgba(0,0,0,0.15);
 }
 .persona-card:hover, .persona-card.selected {
   border-color:var(--accent); background:rgba(99,179,237,0.07);
@@ -254,8 +271,12 @@ body {
   display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:16px; margin-bottom:32px;
 }
 .country-card {
-  padding:20px 16px; border-radius:var(--radius); border:1px solid var(--border);
-  background:var(--bg-card); cursor:pointer; transition:var(--transition); text-align:center;
+  padding:20px 16px; border-radius:var(--radius); 
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.03); 
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  cursor:pointer; transition:var(--transition); text-align:center;
+  box-shadow:0 8px 32px rgba(0,0,0,0.15);
 }
 .country-card:hover {
   border-color:var(--accent); transform:translateY(-4px);
@@ -349,8 +370,12 @@ body {
 }
 #factcheck-input:focus { border-color:var(--accent); }
 .verdict-card {
-  padding:24px; border-radius:var(--radius); border:1px solid var(--border);
-  background:var(--bg-card); animation:fadeIn .4s ease;
+  padding:24px; border-radius:var(--radius); 
+  border:1px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.05); 
+  backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  animation:fadeIn .4s ease;
 }
 .confidence-bar { height:6px; background:var(--border); border-radius:3px; margin-top:10px; overflow:hidden; }
 .confidence-fill { height:100%; background:var(--grad3); border-radius:3px; transition:width .6s ease; }
@@ -385,7 +410,13 @@ body {
 
 /* ── Stats ── */
 .stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin:32px 0; }
-.stat-card { padding:24px; border-radius:var(--radius); background:var(--bg-card); border:1px solid var(--border); text-align:center; }
+.stat-card { 
+  padding:24px; border-radius:var(--radius); 
+  background:rgba(255,255,255,0.03); 
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid rgba(255,255,255,0.12); text-align:center; 
+  box-shadow:0 8px 32px rgba(0,0,0,0.15);
+}
 .stat-card .num { font-size:36px; font-weight:800; background:var(--grad3); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
 .stat-card .lbl { font-size:13px; color:var(--text-secondary); margin-top:4px; }
 
