@@ -29,38 +29,48 @@ We built an agentic framework that dynamically adjusts its vocabulary, tone, and
 
 ## 🏆 Evaluation Focus Areas
 
-### 1. Code Quality
-* **Structure**: Clean, modularized backend (`routes/`, `services/`, `main.py`) built on **FastAPI**.
-* **Maintainability**: Fully type-hinted Python backend with clear Docstrings. Utilizes Dependency Injection patterns.
-* **Modern Tooling**: Implemented the latest `google-genai` SDK and robust Pydantic models for data validation.
+Our entire development lifecycle was guided by the 6 core evaluation criteria of the Prompt Wars challenge. Here is exactly how we addressed each:
 
-### 2. Security
-* **Rate Limiting**: Strictly enforced API rate limits via `slowapi` (e.g., max 30 requests/minute per IP) to prevent abuse and denial-of-service.
-* **Input Sanitization**: Pydantic validators strictly sanitize and limit user input lengths before any processing occurs.
-* **Non-Root Docker**: The application is securely containerized and runs as a non-privileged user in production.
+### 1. Code Quality (Structure, Readability, Maintainability)
+We adhered strictly to enterprise-grade software engineering principles:
+* **Modular Architecture**: The codebase is logically separated into `routes/` (API endpoints), `services/` (business logic and GCP wrappers), and `tests/`. This separation of concerns ensures components can be scaled or swapped independently.
+* **Strict Type Hinting**: The entire Python backend uses strict type annotations (`-> dict[str, Any]`, `list[str]`), drastically reducing runtime errors and improving IDE autocomplete.
+* **Self-Documenting Code**: Every function contains comprehensive docstrings. We utilized **Pydantic** for declarative data validation, making the data contracts between the frontend and backend instantly readable.
+* **Latest Tooling**: We migrated entirely to the new official `google-genai` SDK rather than relying on older generative libraries.
 
-### 3. Efficiency
-* **Optimal Resources**: Utilizing `gemini-3.1-flash-lite-preview` for ultra-fast, low-latency generation with an extremely lightweight footprint.
-* **Async I/O**: Fully asynchronous FastAPI implementation (`await client.aio.models.generate_content`) ensuring the server never blocks under concurrent load.
+### 2. Security (Safe and Responsible Implementation)
+We assume zero trust for all incoming data:
+* **Strict Rate Limiting**: Implemented `slowapi` to enforce strict IP-based rate limits (e.g., `30/minute` on chat) to protect the Gemini API from abuse or Denial of Wallet attacks.
+* **Robust Input Sanitization**: All user inputs route through Pydantic validators (`min_length`, `max_length`, `pattern`) to prevent prompt injection and buffer overflow attempts before they ever reach the AI model.
+* **Safety Thresholds**: The Gemini generation config explicitly blocks medium-to-high thresholds of Harassment, Hate Speech, Sexually Explicit, and Dangerous Content.
+* **Secure Deployment**: Our `Dockerfile` uses a multi-stage build and strictly runs the application as a non-root, unprivileged user.
 
-### 4. Testing
-* **Validation**: The repository includes a comprehensive `pytest` test suite with **41 passing tests** covering every endpoint, error state, and mocking all Google Cloud integrations.
+### 3. Efficiency (Optimal Use of Resources)
+* **High-Speed, Low-Cost Modeling**: We specifically architected the app around **`gemini-3.1-flash-lite-preview`**. This ensures ultra-low latency responses, preserving token quota and lowering operational costs without sacrificing reasoning quality.
+* **Fully Asynchronous I/O**: The entire backend utilizes `async`/`await` (e.g., `await client.aio.models.generate_content`). This allows a single Uvicorn worker to handle thousands of concurrent connections efficiently without blocking the main event loop.
+* **Graceful Degradation**: If Cloud Firestore or the Translation API goes down, the application doesn't crash. It seamlessly falls back to in-memory mode or English-only mode, maximizing uptime.
 
-### 5. Accessibility
-* **Inclusive Design**: 
-  - Fully responsive, high-contrast dark theme UI designed for maximum readability.
-  - WCAG-compliant structural HTML (ARIA labels, semantic tags).
-  - Integrated Text-to-Speech (TTS) for visually impaired users.
-  - Dynamic Persona swapping (e.g., simplifying complex political jargon into plain language for Seniors).
+### 4. Testing (Validation of Functionality)
+We believe untested code is broken code:
+* **Comprehensive Test Suite**: The repository includes a robust `pytest` suite containing **41 passing automated tests**.
+* **Mocking External APIs**: We extensively mocked the Google Cloud services (Firestore, NL, Translation, and Gemini) via `unittest.mock` to ensure tests run deterministically and don't consume API quota.
+* **Coverage**: We validate edge cases, such as fallback mechanisms when the `GEMINI_API_KEY` is missing, ensuring our error handling returns precise `503 Service Unavailable` codes instead of opaque 500 crashes.
 
-### 6. Google Services Integration
-ElectoGuide AI represents a meaningful, deep integration of the Google Cloud ecosystem:
-* **Gemini API (3.1 Flash Lite)**: Core reasoning, formatting, and generation engine.
-* **Cloud Firestore**: Persistent NoSQL session state management.
-* **Cloud Natural Language API**: Deep entity extraction for conversational context.
-* **Cloud Translation API**: Real-time multi-lingual localization.
-* **Cloud Logging**: Structured request telemetry and monitoring across all endpoints.
-* **Cloud Run**: Enterprise-grade, auto-scaling serverless deployment.
+### 5. Accessibility (Inclusive and Usable Design)
+Election education must be accessible to every citizen:
+* **Dynamic Persona Simplification**: A Senior Citizen or Student can select their persona, and the AI will dynamically reduce political jargon and adjust its reading level to match their exact needs.
+* **Visual Accessibility**: A high-contrast dark theme minimizes eye strain. We use WCAG-compliant HTML structural elements, ARIA labels, and focus states.
+* **Multi-Modal Interaction**: Integrated Text-to-Speech (TTS) ensures that users with visual impairments or reading difficulties can listen to the AI's educational responses.
+* **Multi-Lingual UI**: Utilizing Google Cloud Translation, the entire application interface and AI responses can be instantly translated into 12 different languages.
+
+### 6. Google Services (Meaningful Integration)
+This project is deeply embedded in the Google Cloud ecosystem, moving far beyond a simple API wrapper:
+* **Gemini 3.1 Flash Lite**: Serves as the core reasoning engine for chat, dynamically generating quizzes, and fact-checking myths.
+* **Cloud Firestore**: Provides a NoSQL persistent database. Chat sessions are saved instantly, allowing users to refresh the page or return later without losing their civic journey context.
+* **Cloud Natural Language API**: Before sending prompts to Gemini, user inputs are analyzed to extract key topics and entities. These entities are injected into the hidden system prompt to hyper-focus the AI's response.
+* **Cloud Translation API**: Powers real-time, bidirectional language localization.
+* **Cloud Logging**: Every API request writes a structured telemetry log (including response times and extracted entities) for deep observability.
+* **Cloud Run & Cloud Build**: The entire application is deployed as a serverless container, scaling dynamically from zero to handle any amount of traffic globally.
 
 ---
 *Built for the Prompt Wars Hackathon.*
