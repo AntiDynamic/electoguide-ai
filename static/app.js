@@ -242,21 +242,42 @@ function initChat() {
 }
 
 // ── TTS ───────────────────────────────────────────────────────────────────────
+let currentAudio = null;
+
 async function speakText(btn) {
-  const text = decodeURIComponent(btn.dataset.text);
+  let text = decodeURIComponent(btn.dataset.text);
   if (!text) return;
 
-  if (state.isSpeaking) { speechSynthesis.cancel(); state.isSpeaking = false; btn.textContent = '🔊 Listen'; return; }
+  if (state.isSpeaking) { 
+    speechSynthesis.cancel(); 
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
+    state.isSpeaking = false; 
+    btn.textContent = '🔊 Listen'; 
+    return; 
+  }
+
+  // Clean markdown and emojis for TTS
+  text = text.replace(/\*\*/g, '')
+             .replace(/\*/g, '')
+             .replace(/#/g, '')
+             .replace(/`/g, '')
+             .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+             .replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '')
+             .trim();
 
   try {
     // Try server TTS first; fall back to browser
-    const data = await apiPost('/api/tts', { text: text.slice(0, 1000) });
+    const data = await apiPost('/api/tts', { text: text.slice(0, 4000) });
     if (!data.use_browser_tts && data.audio_base64) {
-      const audio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
+      currentAudio = new Audio(`data:audio/mp3;base64,${data.audio_base64}`);
       state.isSpeaking = true;
       btn.textContent = '⏹ Stop';
-      audio.onended = () => { state.isSpeaking = false; btn.textContent = '🔊 Listen'; };
-      audio.play();
+      currentAudio.onended = () => { state.isSpeaking = false; btn.textContent = '🔊 Listen'; currentAudio = null; };
+      currentAudio.play();
     } else {
       useBrowserTTS(text, btn);
     }
@@ -561,7 +582,16 @@ function initA11y() {
   });
   $('a11y-stop').addEventListener('click', () => {
     speechSynthesis.cancel();
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
     state.isSpeaking = false;
+    // Reset all listen buttons
+    qsa('.msg-action-btn').forEach(btn => {
+      if (btn.textContent.includes('Stop')) btn.textContent = '🔊 Listen';
+    });
     showToast('Speech stopped');
   });
 }
