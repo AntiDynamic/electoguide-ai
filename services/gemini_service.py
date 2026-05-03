@@ -1,7 +1,7 @@
 """
-Gemini AI Service  (gemini-1.5-flash)
+Gemini AI Service  (gemini-3-flash-preview)
 =======================================
-Centralised Gemini client for all AI features:
+Centralised Gemini client using google-genai SDK for all AI features:
   • Persona-aware election chat
   • Adaptive quiz generation
   • Myth / fact verification
@@ -15,24 +15,33 @@ import os
 import re
 from typing import Any
 
-import google.generativeai as genai
-from google.generativeai.types import HarmBlockThreshold, HarmCategory
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+# Use the model name specified in .env, falling back to gemini-3-flash-preview
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
 
-SAFETY_SETTINGS = {
-    HarmCategory.HARM_CATEGORY_HARASSMENT:        HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    HarmCategory.HARM_CATEGORY_HATE_SPEECH:        HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT:  HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT:  HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
-}
-
-CHAT_CONFIG   = genai.GenerationConfig(temperature=0.7, top_p=0.95, max_output_tokens=1024)
-JSON_CONFIG   = genai.GenerationConfig(temperature=0.2, top_p=0.95, max_output_tokens=2048)
-QUIZ_CONFIG   = genai.GenerationConfig(temperature=0.8, top_p=0.95, max_output_tokens=2048)
+SAFETY_SETTINGS = [
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    ),
+    types.SafetySetting(
+        category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold=types.HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+    ),
+]
 
 # ── Persona system prompts ────────────────────────────────────────────────────
 PERSONAS: dict[str, str] = {
@@ -86,25 +95,28 @@ When unsure, say so honestly and suggest official sources (election.gov, governm
 
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
-def _configure() -> None:
-    """Configure the Gemini SDK (idempotent)."""
+
+def _get_client() -> genai.Client:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise EnvironmentError("GEMINI_API_KEY is not set.")
-    genai.configure(api_key=api_key)
+    return genai.Client(api_key=api_key)
 
-
-def _model(config: genai.GenerationConfig) -> genai.GenerativeModel:
-    return genai.GenerativeModel(
-        model_name=MODEL_NAME,
-        system_instruction=BASE_SYSTEM_PROMPT,
+def _config(system_instruction: str, response_mime_type: str = "text/plain", temperature: float = 0.7, max_output_tokens: int = 1024) -> types.GenerateContentConfig:
+    return types.GenerateContentConfig(
+        temperature=temperature,
+        top_p=0.95,
+        max_output_tokens=max_output_tokens,
+        system_instruction=system_instruction,
         safety_settings=SAFETY_SETTINGS,
-        generation_config=config,
+        response_mime_type=response_mime_type,
     )
-
 
 def _extract_json(text: str) -> dict[str, Any]:
     """Extract the first JSON object from a text response."""
+    if not text:
+        raise ValueError("Model returned empty response.")
+        
     # Direct parse
     try:
         return json.loads(text.strip())
@@ -136,7 +148,7 @@ async def generate_chat_response(
     entities: list[str] | None = None,
 ) -> str:
     """
-    Generate a conversational response using Gemini 1.5 Flash.
+    Generate a conversational response using Gemini.
 
     Args:
         message:  User's current message.
@@ -144,7 +156,7 @@ async def generate_chat_response(
         persona:  One of student | first_voter | researcher | senior | general.
         entities: Optional list of detected entities (from Cloud NL API) to enrich context.
     """
-    _configure()
+    client = _get_client()
 
     persona_ctx = PERSONAS.get(persona, PERSONAS["general"])
     system = f"{BASE_SYSTEM_PROMPT}\n\nUser context: {persona_ctx}"
@@ -152,29 +164,28 @@ async def generate_chat_response(
     if entities:
         system += f"\n\nKey topics detected in the user's message: {', '.join(entities)}. Ensure your response addresses these specifically."
 
-    model = genai.GenerativeModel(
-        model_name=MODEL_NAME,
-        system_instruction=system,
-        safety_settings=SAFETY_SETTINGS,
-        generation_config=CHAT_CONFIG,
-    )
+    config = _config(system, temperature=0.7, max_output_tokens=1024)
 
     # Build Gemini history
-    gemini_history = [
-        {"role": t["role"], "parts": [t["content"]]}
-        for t in (history or [])[-10:]
-        if t.get("role") in ("user", "model") and t.get("content", "").strip()
-    ]
+    contents = []
+    for t in (history or [])[-10:]:
+        if t.get("role") in ("user", "model") and t.get("content", "").strip():
+            contents.append({"role": t["role"], "parts": [{"text": t["content"]}]})
+    
+    contents.append({"role": "user", "parts": [{"text": message}]})
 
-    chat = model.start_chat(history=gemini_history)
-    response = await chat.send_message_async(message)
-    return response.text
+    response = await client.aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=contents,
+        config=config,
+    )
+    return response.text or ""
 
 
 async def generate_quiz(topic: str, difficulty: str = "medium", count: int = 5) -> dict[str, Any]:
     """Generate multiple-choice quiz questions about an election topic."""
-    _configure()
-    model = _model(QUIZ_CONFIG)
+    client = _get_client()
+    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.8, max_output_tokens=2048)
 
     prompt = f"""Generate exactly {count} multiple-choice quiz questions about: "{topic}"
 Context: election education. Difficulty: {difficulty}.
@@ -196,14 +207,18 @@ Return ONLY valid JSON (no markdown, no extra text):
 
 "correct" is the 0-based index of the right option. All questions must be factual and nonpartisan."""
 
-    response = await model.generate_content_async(prompt)
+    response = await client.aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=[{"role": "user", "parts": [{"text": prompt}]}],
+        config=config,
+    )
     return _extract_json(response.text)
 
 
 async def fact_check_claim(claim: str) -> dict[str, Any]:
     """Fact-check an election-related claim."""
-    _configure()
-    model = _model(JSON_CONFIG)
+    client = _get_client()
+    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.2, max_output_tokens=2048)
 
     prompt = f"""You are a nonpartisan election fact-checker. Analyse this claim:
 
@@ -219,14 +234,18 @@ Return ONLY valid JSON (no markdown, no extra text):
   "context": "Brief additional context for the reader"
 }}"""
 
-    response = await model.generate_content_async(prompt)
+    response = await client.aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=[{"role": "user", "parts": [{"text": prompt}]}],
+        config=config,
+    )
     return _extract_json(response.text)
 
 
 async def get_country_election_info(country: str) -> dict[str, Any]:
     """Get structured election system information for a country."""
-    _configure()
-    model = _model(JSON_CONFIG)
+    client = _get_client()
+    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.2, max_output_tokens=2048)
 
     prompt = f"""Provide accurate election system information for: {country}
 
@@ -251,14 +270,18 @@ Return ONLY valid JSON (no markdown, no extra text):
   "fun_fact": "One surprising fact about this country's elections"
 }}"""
 
-    response = await model.generate_content_async(prompt)
+    response = await client.aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=[{"role": "user", "parts": [{"text": prompt}]}],
+        config=config,
+    )
     return _extract_json(response.text)
 
 
 async def generate_voter_journey(country: str, persona: str = "first_voter") -> dict[str, Any]:
     """Generate a personalised voter journey for a given country and persona."""
-    _configure()
-    model = _model(JSON_CONFIG)
+    client = _get_client()
+    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.2, max_output_tokens=2048)
 
     persona_desc = PERSONAS.get(persona, PERSONAS["general"])
 
@@ -287,5 +310,9 @@ Return ONLY valid JSON (no markdown, no extra text):
 
 Include 5–7 steps. Be practical and actionable."""
 
-    response = await model.generate_content_async(prompt)
+    response = await client.aio.models.generate_content(
+        model=MODEL_NAME,
+        contents=[{"role": "user", "parts": [{"text": prompt}]}],
+        config=config,
+    )
     return _extract_json(response.text)
