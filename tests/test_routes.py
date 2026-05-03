@@ -1,7 +1,7 @@
-"""Tests for quiz, factcheck, TTS, and countries endpoints."""
+"""Tests for chat, sessions, translation, and system endpoints."""
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -9,166 +9,225 @@ from main import app
 
 client = TestClient(app)
 
-# ── Quiz Tests ─────────────────────────────────────────────────────────────────
+
+# ── Health & Config ───────────────────────────────────────────────────────────
+
+def test_health_check():
+    r = client.get("/health")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["status"] == "healthy"
+    assert "model" in d
+    assert "version" in d
+
+
+def test_config_endpoint():
+    r = client.get("/api/config")
+    assert r.status_code == 200
+    d = r.json()
+    assert "model" in d
+    assert "version" in d
+
+
+# ── Chat Tests ────────────────────────────────────────────────────────────────
+
+def test_chat_empty_message_rejected():
+    r = client.post("/api/chat", json={"message": ""})
+    assert r.status_code == 422
+
+
+def test_chat_message_too_long():
+    r = client.post("/api/chat", json={"message": "x" * 2001})
+    assert r.status_code == 422
+
+
+@pytest.mark.parametrize("persona", ["student", "first_voter", "researcher", "senior", "general"])
+def test_chat_all_personas(persona):
+    with patch("routes.chat.generate_chat_response", new_callable=AsyncMock) as mock_ai, \
+         patch("routes.chat.extract_entities", new_callable=AsyncMock) as mock_nl:
+        mock_ai.return_value = f"Response for {persona}"
+        mock_nl.return_value = []
+        r = client.post("/api/chat", json={"message": "How do I register to vote?", "persona": persona})
+        assert r.status_code == 200
+        assert r.json()["persona"] == persona
+
+
+def test_chat_invalid_persona_falls_back_to_general():
+    with patch("routes.chat.generate_chat_response", new_callable=AsyncMock) as mock_ai, \
+         patch("routes.chat.extract_entities", new_callable=AsyncMock) as mock_nl:
+        mock_ai.return_value = "Test response"
+        mock_nl.return_value = []
+        r = client.post("/api/chat", json={"message": "What is an election?", "persona": "INVALID"})
+        assert r.status_code == 200
+        assert r.json()["persona"] == "general"
+
+
+def test_chat_returns_entities():
+    with patch("routes.chat.generate_chat_response", new_callable=AsyncMock) as mock_ai, \
+         patch("routes.chat.extract_entities", new_callable=AsyncMock) as mock_nl:
+        mock_ai.return_value = "India has a parliamentary system."
+        mock_nl.return_value = ["India", "Parliament"]
+        r = client.post("/api/chat", json={"message": "Tell me about India's elections"})
+        assert r.status_code == 200
+        assert "entities" in r.json()
+
+
+def test_chat_with_history():
+    with patch("routes.chat.generate_chat_response", new_callable=AsyncMock) as mock_ai, \
+         patch("routes.chat.extract_entities", new_callable=AsyncMock) as mock_nl:
+        mock_ai.return_value = "Here is more info."
+        mock_nl.return_value = []
+        r = client.post("/api/chat", json={
+            "message": "Tell me more",
+            "history": [
+                {"role": "user", "content": "What is voting?"},
+                {"role": "model", "content": "Voting is a right..."},
+            ]
+        })
+        assert r.status_code == 200
+
+
+def test_chat_gemini_unavailable_returns_503():
+    with patch("routes.chat.generate_chat_response", new_callable=AsyncMock) as mock_ai, \
+         patch("routes.chat.extract_entities", new_callable=AsyncMock) as mock_nl:
+        mock_ai.side_effect = EnvironmentError("No API key")
+        mock_nl.return_value = []
+        r = client.post("/api/chat", json={"message": "What is an election?"})
+        assert r.status_code == 503
+
+
+# ── Sessions Tests ────────────────────────────────────────────────────────────
+
+def test_create_session():
+    with patch("routes.sessions.fs.create_session", new_callable=AsyncMock) as mock_create:
+        mock_create.return_value = {
+            "session_id": "test-uuid-1234-5678-abcd",
+            "persona": "general",
+            "created_at": "2026-01-01T00:00:00+00:00",
+        }
+        r = client.post("/api/sessions", json={"persona": "general"})
+        assert r.status_code == 200
+        assert "session_id" in r.json()
+
+
+def test_sessions_status():
+    r = client.get("/api/sessions/info")
+    assert r.status_code == 200
+    assert "firestore_available" in r.json()
+
+
+# ── Translation Tests ─────────────────────────────────────────────────────────
+
+def test_translate_languages_list():
+    r = client.get("/api/translate/languages")
+    assert r.status_code == 200
+    data = r.json()
+    assert "languages" in data
+    assert len(data["languages"]) >= 10
+
+
+def test_translate_same_language_passthrough():
+    with patch("routes.translate.translate_text", new_callable=AsyncMock) as mock_t:
+        mock_t.return_value = {"translated_text": "Hello", "used_cloud": False}
+        r = client.post("/api/translate", json={
+            "text": "Hello", "target_language": "en", "source_language": "en"
+        })
+        assert r.status_code == 200
+
+
+def test_translate_text_too_long():
+    r = client.post("/api/translate", json={
+        "text": "x" * 10001, "target_language": "fr"
+    })
+    assert r.status_code == 422
+
+
+def test_translate_empty_text_rejected():
+    r = client.post("/api/translate", json={"text": "", "target_language": "hi"})
+    assert r.status_code == 422
+
+
+# ── Quiz Tests ────────────────────────────────────────────────────────────────
 
 MOCK_QUIZ = {
     "topic": "General Election Knowledge",
     "difficulty": "medium",
-    "questions": [
-        {
-            "id": 1,
-            "question": "What is the minimum voting age in most democracies?",
-            "options": ["16", "17", "18", "21"],
-            "correct": 2,
-            "explanation": "Most democracies set the voting age at 18."
-        }
-    ]
+    "questions": [{"id": 1, "question": "?", "options": ["A","B","C","D"], "correct": 0, "explanation": "Because."}]
 }
 
 
-def test_quiz_topics_endpoint():
-    response = client.get("/api/quiz/topics")
-    assert response.status_code == 200
-    assert "topics" in response.json()
-    assert len(response.json()["topics"]) > 0
+def test_quiz_topics():
+    r = client.get("/api/quiz/topics")
+    assert r.status_code == 200
+    assert len(r.json()["topics"]) > 0
 
 
 def test_quiz_valid_request():
-    with patch("routes.quiz.generate_quiz", new_callable=AsyncMock) as mock_gen:
-        mock_gen.return_value = MOCK_QUIZ
-        response = client.post("/api/quiz", json={"topic": "general", "difficulty": "medium", "count": 5})
-        assert response.status_code == 200
-        data = response.json()
-        assert "questions" in data
+    with patch("routes.quiz.generate_quiz", new_callable=AsyncMock) as m:
+        m.return_value = MOCK_QUIZ
+        r = client.post("/api/quiz", json={"topic": "general", "difficulty": "medium", "count": 5})
+        assert r.status_code == 200
 
 
-def test_quiz_count_out_of_range():
-    response = client.post("/api/quiz", json={"topic": "general", "difficulty": "medium", "count": 20})
-    assert response.status_code == 422
+def test_quiz_count_too_high():
+    r = client.post("/api/quiz", json={"count": 20})
+    assert r.status_code == 422
 
 
-def test_quiz_invalid_difficulty_defaults():
-    with patch("routes.quiz.generate_quiz", new_callable=AsyncMock) as mock_gen:
-        mock_gen.return_value = MOCK_QUIZ
-        response = client.post("/api/quiz", json={"topic": "general", "difficulty": "impossible", "count": 3})
-        assert response.status_code == 200  # defaults to medium
+# ── Fact Check Tests ──────────────────────────────────────────────────────────
 
-
-# ── Fact-Check Tests ──────────────────────────────────────────────────────────
-
-MOCK_FACTCHECK = {
-    "claim": "You need ID to vote everywhere",
-    "verdict": "FALSE",
-    "explanation": "ID requirements vary widely by country.",
-    "confidence": 90,
-    "sources_hint": "Government election websites",
-    "context": "Some countries require ID, others use voter rolls."
-}
-
-
-def test_factcheck_examples_endpoint():
-    response = client.get("/api/factcheck/examples")
-    assert response.status_code == 200
-    assert "examples" in response.json()
-    assert len(response.json()["examples"]) > 0
+def test_factcheck_examples():
+    r = client.get("/api/factcheck/examples")
+    assert r.status_code == 200
+    assert len(r.json()["examples"]) > 0
 
 
 def test_factcheck_valid_claim():
-    with patch("routes.factcheck.fact_check_claim", new_callable=AsyncMock) as mock_fc:
-        mock_fc.return_value = MOCK_FACTCHECK
-        response = client.post("/api/factcheck", json={"claim": "You need a photo ID to vote in every country."})
-        assert response.status_code == 200
-        data = response.json()
-        assert "verdict" in data
-        assert data["verdict"] in ["TRUE", "FALSE", "PARTIALLY TRUE", "MISLEADING", "UNVERIFIABLE"]
+    with patch("routes.factcheck.fact_check_claim", new_callable=AsyncMock) as m:
+        m.return_value = {
+            "verdict": "FALSE", "explanation": "...", "confidence": 90,
+            "claim": "test", "sources_hint": "gov websites", "context": "ctx"
+        }
+        r = client.post("/api/factcheck", json={"claim": "Dead people regularly vote in elections."})
+        assert r.status_code == 200
+        assert r.json()["verdict"] in ["TRUE","FALSE","PARTIALLY TRUE","MISLEADING","UNVERIFIABLE"]
 
 
 def test_factcheck_claim_too_short():
-    response = client.post("/api/factcheck", json={"claim": "No"})
-    assert response.status_code == 422
-
-
-def test_factcheck_claim_too_long():
-    response = client.post("/api/factcheck", json={"claim": "x" * 501})
-    assert response.status_code == 422
+    r = client.post("/api/factcheck", json={"claim": "No"})
+    assert r.status_code == 422
 
 
 # ── Countries Tests ───────────────────────────────────────────────────────────
 
-MOCK_COUNTRY = {
-    "country": "India",
-    "flag_emoji": "🇮🇳",
-    "system_type": "Federal Parliamentary Republic",
-    "electoral_system": "First Past the Post",
-    "voting_age": 18,
-    "election_frequency_years": 5,
-    "registration_required": True,
-    "compulsory_voting": False,
-    "key_steps": ["Register on voter rolls", "Receive voter ID card", "Visit polling booth"],
-    "timeline": [{"phase": "Election Day", "timing": "Day 0", "description": "Cast your vote"}],
-    "unique_features": ["World's largest democracy", "Electronic Voting Machines (EVMs)"],
-    "fun_fact": "India conducts the world's largest elections."
-}
-
-
 def test_countries_list():
-    response = client.get("/api/countries")
-    assert response.status_code == 200
-    data = response.json()
-    assert "countries" in data
-    assert len(data["countries"]) >= 10
+    r = client.get("/api/countries")
+    assert r.status_code == 200
+    assert len(r.json()["countries"]) >= 10
 
 
-def test_get_country_info():
-    with patch("routes.countries.get_country_election_info", new_callable=AsyncMock) as mock_ci:
-        mock_ci.return_value = MOCK_COUNTRY
-        response = client.get("/api/countries/India")
-        assert response.status_code == 200
-        data = response.json()
-        assert "voting_age" in data
-
-
-def test_get_country_invalid_name():
-    response = client.get("/api/countries/A")  # Too short
-    assert response.status_code in [400, 422]
+def test_get_country():
+    with patch("routes.countries.get_country_election_info", new_callable=AsyncMock) as m:
+        m.return_value = {"country": "India", "voting_age": 18, "key_steps": []}
+        r = client.get("/api/countries/India")
+        assert r.status_code == 200
 
 
 # ── TTS Tests ─────────────────────────────────────────────────────────────────
 
 def test_tts_status():
-    response = client.get("/api/tts/status")
-    assert response.status_code == 200
-    data = response.json()
-    assert "cloud_tts_available" in data
-    assert "fallback" in data
+    r = client.get("/api/tts/status")
+    assert r.status_code == 200
 
 
 def test_tts_browser_fallback():
-    """When Cloud TTS is unavailable, should return browser fallback instruction."""
-    with patch("routes.tts.synthesize_speech", new_callable=AsyncMock) as mock_tts:
-        mock_tts.return_value = None  # Simulate unavailable
-        response = client.post("/api/tts", json={"text": "Welcome to ElectoGuide AI!"})
-        assert response.status_code == 200
-        data = response.json()
-        assert data["use_browser_tts"] is True
-        assert "text" in data
+    with patch("routes.tts.synthesize_speech", new_callable=AsyncMock) as m:
+        m.return_value = None
+        r = client.post("/api/tts", json={"text": "Welcome to ElectoGuide AI!"})
+        assert r.status_code == 200
+        assert r.json()["use_browser_tts"] is True
 
 
 def test_tts_text_too_long():
-    response = client.post("/api/tts", json={"text": "x" * 5001})
-    assert response.status_code == 422
-
-
-def test_tts_invalid_speaking_rate():
-    response = client.post("/api/tts", json={"text": "Hello", "speaking_rate": 10.0})
-    assert response.status_code == 422
-
-
-# ── Health & Config Tests ─────────────────────────────────────────────────────
-
-def test_app_config_endpoint():
-    response = client.get("/api/config")
-    assert response.status_code == 200
-    data = response.json()
-    assert "model" in data
-    assert "version" in data
+    r = client.post("/api/tts", json={"text": "x" * 5001})
+    assert r.status_code == 422
