@@ -82,7 +82,9 @@ async def update_persona(
     """Update the persona for an existing session."""
     ok = await fs.update_persona(session_id, body.persona)
     if not ok:
-        raise HTTPException(status_code=404, detail="Session not found or Firestore unavailable.")
+        raise HTTPException(
+            status_code=404, detail="Session not found or Firestore unavailable."
+        )
     return {"session_id": session_id, "persona": body.persona, "updated": True}
 
 

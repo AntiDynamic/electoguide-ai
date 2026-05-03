@@ -26,7 +26,7 @@ VALID_CODES = {lang["code"] for lang in SUPPORTED_LANGUAGES}
 
 
 class TranslateRequest(BaseModel):
-    text:            str = Field(..., min_length=1, max_length=10_000)
+    text: str = Field(..., min_length=1, max_length=10_000)
     target_language: str = Field(..., max_length=10)
     source_language: str = Field(default="en", max_length=10)
 
@@ -67,7 +67,9 @@ async def translate(request: Request, body: TranslateRequest) -> dict:
         return result
     except Exception as exc:
         logger.exception("Translation error: %s", exc)
-        raise HTTPException(status_code=500, detail="Translation failed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Translation failed. Please try again."
+        )
 
 
 @router.post("/translate/detect")

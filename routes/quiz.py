@@ -74,10 +74,14 @@ async def create_quiz(request: Request, body: QuizRequest) -> dict:
         raise HTTPException(status_code=503, detail="AI service not configured.")
     except ValueError as exc:
         logger.error(f"Parse error in /api/quiz: {exc}")
-        raise HTTPException(status_code=502, detail="Could not parse AI response. Please retry.")
+        raise HTTPException(
+            status_code=502, detail="Could not parse AI response. Please retry."
+        )
     except Exception as exc:
         logger.exception(f"Unexpected error in /api/quiz: {exc}")
-        raise HTTPException(status_code=500, detail="Quiz generation failed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Quiz generation failed. Please try again."
+        )
 
 
 @router.get("/quiz/topics")

@@ -20,18 +20,48 @@ limiter = Limiter(key_func=get_remote_address)
 
 # Featured countries displayed on the home page
 FEATURED_COUNTRIES = [
-    {"name": "United States",  "code": "us",  "emoji": "🇺🇸", "system": "Federal Republic"},
-    {"name": "India",          "code": "in",  "emoji": "🇮🇳", "system": "Parliamentary Democracy"},
-    {"name": "United Kingdom", "code": "gb",  "emoji": "🇬🇧", "system": "Constitutional Monarchy"},
-    {"name": "Germany",        "code": "de",  "emoji": "🇩🇪", "system": "Federal Republic"},
-    {"name": "France",         "code": "fr",  "emoji": "🇫🇷", "system": "Semi-Presidential"},
-    {"name": "Canada",         "code": "ca",  "emoji": "🇨🇦", "system": "Parliamentary Democracy"},
-    {"name": "Australia",      "code": "au",  "emoji": "🇦🇺", "system": "Federal Democracy"},
-    {"name": "Brazil",         "code": "br",  "emoji": "🇧🇷", "system": "Federal Republic"},
-    {"name": "Japan",          "code": "jp",  "emoji": "🇯🇵", "system": "Constitutional Monarchy"},
-    {"name": "South Africa",   "code": "za",  "emoji": "🇿🇦", "system": "Constitutional Republic"},
-    {"name": "New Zealand",    "code": "nz",  "emoji": "🇳🇿", "system": "Parliamentary Democracy"},
-    {"name": "Sweden",         "code": "se",  "emoji": "🇸🇪", "system": "Constitutional Monarchy"},
+    {
+        "name": "United States",
+        "code": "us",
+        "emoji": "🇺🇸",
+        "system": "Federal Republic",
+    },
+    {"name": "India", "code": "in", "emoji": "🇮🇳", "system": "Parliamentary Democracy"},
+    {
+        "name": "United Kingdom",
+        "code": "gb",
+        "emoji": "🇬🇧",
+        "system": "Constitutional Monarchy",
+    },
+    {"name": "Germany", "code": "de", "emoji": "🇩🇪", "system": "Federal Republic"},
+    {"name": "France", "code": "fr", "emoji": "🇫🇷", "system": "Semi-Presidential"},
+    {
+        "name": "Canada",
+        "code": "ca",
+        "emoji": "🇨🇦",
+        "system": "Parliamentary Democracy",
+    },
+    {"name": "Australia", "code": "au", "emoji": "🇦🇺", "system": "Federal Democracy"},
+    {"name": "Brazil", "code": "br", "emoji": "🇧🇷", "system": "Federal Republic"},
+    {"name": "Japan", "code": "jp", "emoji": "🇯🇵", "system": "Constitutional Monarchy"},
+    {
+        "name": "South Africa",
+        "code": "za",
+        "emoji": "🇿🇦",
+        "system": "Constitutional Republic",
+    },
+    {
+        "name": "New Zealand",
+        "code": "nz",
+        "emoji": "🇳🇿",
+        "system": "Parliamentary Democracy",
+    },
+    {
+        "name": "Sweden",
+        "code": "se",
+        "emoji": "🇸🇪",
+        "system": "Constitutional Monarchy",
+    },
 ]
 
 VALID_PERSONAS = {"student", "first_voter", "researcher", "senior", "general"}
@@ -75,7 +105,9 @@ async def get_country(
         raise HTTPException(status_code=503, detail="AI service not configured.")
     except Exception as exc:
         logger.exception(f"Unexpected error in /api/countries/{country}: {exc}")
-        raise HTTPException(status_code=500, detail="Could not retrieve country information.")
+        raise HTTPException(
+            status_code=500, detail="Could not retrieve country information."
+        )
 
 
 @router.get("/countries/{country}/journey")

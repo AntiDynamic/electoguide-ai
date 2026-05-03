@@ -15,6 +15,7 @@ import os
 import re
 from typing import Any
 
+from async_lru import alru_cache
 from google import genai
 from google.genai import types
 
@@ -96,13 +97,20 @@ When unsure, say so honestly and suggest official sources (election.gov, governm
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
+
 def _get_client() -> genai.Client:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise EnvironmentError("GEMINI_API_KEY is not set.")
     return genai.Client(api_key=api_key)
 
-def _config(system_instruction: str, response_mime_type: str = "text/plain", temperature: float = 0.7, max_output_tokens: int = 1024) -> types.GenerateContentConfig:
+
+def _config(
+    system_instruction: str,
+    response_mime_type: str = "text/plain",
+    temperature: float = 0.7,
+    max_output_tokens: int = 1024,
+) -> types.GenerateContentConfig:
     return types.GenerateContentConfig(
         temperature=temperature,
         top_p=0.95,
@@ -112,11 +120,12 @@ def _config(system_instruction: str, response_mime_type: str = "text/plain", tem
         response_mime_type=response_mime_type,
     )
 
+
 def _extract_json(text: str) -> dict[str, Any]:
     """Extract the first JSON object from a text response."""
     if not text:
         raise ValueError("Model returned empty response.")
-        
+
     # Direct parse
     try:
         return json.loads(text.strip())
@@ -140,6 +149,7 @@ def _extract_json(text: str) -> dict[str, Any]:
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
+
 
 async def generate_chat_response(
     message: str,
@@ -171,7 +181,7 @@ async def generate_chat_response(
     for t in (history or [])[-10:]:
         if t.get("role") in ("user", "model") and t.get("content", "").strip():
             contents.append({"role": t["role"], "parts": [{"text": t["content"]}]})
-    
+
     contents.append({"role": "user", "parts": [{"text": message}]})
 
     response = await client.aio.models.generate_content(
@@ -182,10 +192,17 @@ async def generate_chat_response(
     return response.text or ""
 
 
-async def generate_quiz(topic: str, difficulty: str = "medium", count: int = 5) -> dict[str, Any]:
+async def generate_quiz(
+    topic: str, difficulty: str = "medium", count: int = 5
+) -> dict[str, Any]:
     """Generate multiple-choice quiz questions about an election topic."""
     client = _get_client()
-    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.8, max_output_tokens=2048)
+    config = _config(
+        BASE_SYSTEM_PROMPT,
+        response_mime_type="application/json",
+        temperature=0.8,
+        max_output_tokens=2048,
+    )
 
     prompt = f"""Generate exactly {count} multiple-choice quiz questions about: "{topic}"
 Context: election education. Difficulty: {difficulty}.
@@ -218,7 +235,12 @@ Return ONLY valid JSON (no markdown, no extra text):
 async def fact_check_claim(claim: str) -> dict[str, Any]:
     """Fact-check an election-related claim."""
     client = _get_client()
-    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.2, max_output_tokens=2048)
+    config = _config(
+        BASE_SYSTEM_PROMPT,
+        response_mime_type="application/json",
+        temperature=0.2,
+        max_output_tokens=2048,
+    )
 
     prompt = f"""You are a nonpartisan election fact-checker. Analyse this claim:
 
@@ -242,10 +264,16 @@ Return ONLY valid JSON (no markdown, no extra text):
     return _extract_json(response.text)
 
 
+@alru_cache(maxsize=100)
 async def get_country_election_info(country: str) -> dict[str, Any]:
     """Get structured election system information for a country."""
     client = _get_client()
-    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.2, max_output_tokens=2048)
+    config = _config(
+        BASE_SYSTEM_PROMPT,
+        response_mime_type="application/json",
+        temperature=0.2,
+        max_output_tokens=2048,
+    )
 
     prompt = f"""Provide accurate election system information for: {country}
 
@@ -278,10 +306,17 @@ Return ONLY valid JSON (no markdown, no extra text):
     return _extract_json(response.text)
 
 
-async def generate_voter_journey(country: str, persona: str = "first_voter") -> dict[str, Any]:
+async def generate_voter_journey(
+    country: str, persona: str = "first_voter"
+) -> dict[str, Any]:
     """Generate a personalised voter journey for a given country and persona."""
     client = _get_client()
-    config = _config(BASE_SYSTEM_PROMPT, response_mime_type="application/json", temperature=0.2, max_output_tokens=2048)
+    config = _config(
+        BASE_SYSTEM_PROMPT,
+        response_mime_type="application/json",
+        temperature=0.2,
+        max_output_tokens=2048,
+    )
 
     persona_desc = PERSONAS.get(persona, PERSONAS["general"])
 

@@ -22,6 +22,7 @@ def is_tts_available() -> bool:
         return _TTS_AVAILABLE
     try:
         from google.cloud import texttospeech  # noqa: F401
+
         creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
         _TTS_AVAILABLE = bool(creds_path and os.path.exists(creds_path))
     except ImportError:
@@ -70,7 +71,9 @@ async def synthesize_speech(
         )
 
         audio_b64 = b64encode(response.audio_content).decode("utf-8")
-        logger.info(f"Cloud TTS synthesized {len(text)} chars → {len(audio_b64)} B64 chars")
+        logger.info(
+            f"Cloud TTS synthesized {len(text)} chars → {len(audio_b64)} B64 chars"
+        )
         return audio_b64
 
     except Exception as exc:

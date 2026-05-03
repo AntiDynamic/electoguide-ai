@@ -90,6 +90,12 @@ function initHero() {
       });
       showToast(`Persona set: ${card.querySelector('h4').textContent}`);
     });
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
   });
 
   $('hero-start-btn').addEventListener('click', () => {
@@ -116,8 +122,13 @@ function buildChatPage() {
   QUICK_QUESTIONS.forEach(q => {
     const card = document.createElement('div');
     card.className = 'quick-card';
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
     card.innerHTML = `<div class="qicon">${q.icon}</div><div class="qtext"><h5>${q.title}</h5><p>${q.sub}</p></div>`;
     card.addEventListener('click', () => sendChatMessage(q.title));
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    });
     grid.appendChild(card);
   });
 
@@ -282,8 +293,13 @@ async function loadCountriesList() {
     data.countries.forEach(c => {
       const card = document.createElement('div');
       card.className = 'country-card';
+      card.tabIndex = 0;
+      card.setAttribute('role', 'button');
       card.innerHTML = `<div class="flag">${c.emoji}</div><h4>${c.name}</h4><p>${c.system}</p>`;
       card.addEventListener('click', () => openCountryModal(c.name, c.emoji));
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+      });
       grid.appendChild(card);
     });
   } catch (e) {

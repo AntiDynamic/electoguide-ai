@@ -75,6 +75,19 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -89,12 +102,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 # ── Routers ───────────────────────────────────────────────────────────────────
-app.include_router(chat.router,      prefix="/api", tags=["Chat"])
-app.include_router(sessions.router,  prefix="/api", tags=["Sessions"])
+app.include_router(chat.router, prefix="/api", tags=["Chat"])
+app.include_router(sessions.router, prefix="/api", tags=["Sessions"])
 app.include_router(translate.router, prefix="/api", tags=["Translation"])
-app.include_router(quiz.router,      prefix="/api", tags=["Quiz"])
+app.include_router(quiz.router, prefix="/api", tags=["Quiz"])
 app.include_router(factcheck.router, prefix="/api", tags=["Fact Check"])
-app.include_router(tts.router,       prefix="/api", tags=["Text-to-Speech"])
+app.include_router(tts.router, prefix="/api", tags=["Text-to-Speech"])
 app.include_router(countries.router, prefix="/api", tags=["Countries"])
 
 
@@ -108,29 +121,34 @@ async def root(request: Request) -> HTMLResponse:
 @app.get("/health", tags=["System"])
 async def health_check() -> JSONResponse:
     """Health check for Cloud Run liveness probe."""
-    return JSONResponse(content={
-        "status": "healthy",
-        "service": "ElectoGuide AI",
-        "version": "2.0.0",
-        "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
-        "project": os.getenv("GCP_PROJECT_ID", "promptwars-495214"),
-    })
+    return JSONResponse(
+        content={
+            "status": "healthy",
+            "service": "ElectoGuide AI",
+            "version": "2.0.0",
+            "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
+            "project": os.getenv("GCP_PROJECT_ID", "promptwars-495214"),
+        }
+    )
 
 
 @app.get("/api/config", tags=["System"])
 async def get_config() -> JSONResponse:
     """Return safe (non-secret) app configuration for the frontend."""
-    return JSONResponse(content={
-        "version": "2.0.0",
-        "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
-        "tts_available": True,   # Browser TTS always available
-        "project_id": os.getenv("GCP_PROJECT_ID", "promptwars-495214"),
-    })
+    return JSONResponse(
+        content={
+            "version": "2.0.0",
+            "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash"),
+            "tts_available": True,  # Browser TTS always available
+            "project_id": os.getenv("GCP_PROJECT_ID", "promptwars-495214"),
+        }
+    )
 
 
 # ── Entry Point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "main:app",
         host="0.0.0.0",

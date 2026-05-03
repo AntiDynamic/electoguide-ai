@@ -28,6 +28,7 @@ def _get_client():
         return _firestore_client
     try:
         from google.cloud import firestore as fs
+
         project = os.getenv("GCP_PROJECT_ID", "promptwars-495214")
         _firestore_client = fs.AsyncClient(project=project)
         _FIRESTORE_AVAILABLE = True
@@ -35,7 +36,9 @@ def _get_client():
         return _firestore_client
     except Exception as exc:
         _FIRESTORE_AVAILABLE = False
-        logger.warning("⚠️  Firestore unavailable — sessions will be in-memory only: %s", exc)
+        logger.warning(
+            "⚠️  Firestore unavailable — sessions will be in-memory only: %s", exc
+        )
         return None
 
 
@@ -45,6 +48,7 @@ def is_available() -> bool:
 
 
 # ── Session Management ────────────────────────────────────────────────────────
+
 
 async def create_session(persona: str = "general") -> dict[str, Any]:
     """Create a new chat session and persist it to Firestore."""
@@ -90,12 +94,15 @@ async def append_message(session_id: str, role: str, content: str) -> bool:
         return False
     try:
         from google.cloud import firestore as fs
+
         ref = client.collection("sessions").document(session_id)
-        await ref.update({
-            "history": fs.ArrayUnion([{"role": role, "content": content}]),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "message_count": fs.Increment(1),
-        })
+        await ref.update(
+            {
+                "history": fs.ArrayUnion([{"role": role, "content": content}]),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "message_count": fs.Increment(1),
+            }
+        )
         return True
     except Exception as exc:
         logger.error("Firestore: append_message(%s) failed: %s", session_id, exc)
@@ -108,10 +115,12 @@ async def update_persona(session_id: str, persona: str) -> bool:
     if not client:
         return False
     try:
-        await client.collection("sessions").document(session_id).update({
-            "persona": persona,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        })
+        await client.collection("sessions").document(session_id).update(
+            {
+                "persona": persona,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
         return True
     except Exception as exc:
         logger.error("Firestore: update_persona(%s) failed: %s", session_id, exc)

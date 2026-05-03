@@ -59,10 +59,14 @@ async def fact_check(request: Request, body: FactCheckRequest) -> dict:
         raise HTTPException(status_code=503, detail="AI service not configured.")
     except ValueError as exc:
         logger.error(f"Parse error in /api/factcheck: {exc}")
-        raise HTTPException(status_code=502, detail="Could not parse AI response. Please retry.")
+        raise HTTPException(
+            status_code=502, detail="Could not parse AI response. Please retry."
+        )
     except Exception as exc:
         logger.exception(f"Unexpected error in /api/factcheck: {exc}")
-        raise HTTPException(status_code=500, detail="Fact-check failed. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="Fact-check failed. Please try again."
+        )
 
 
 @router.get("/factcheck/examples")

@@ -23,6 +23,7 @@ def _get_cloud_logger():
 
     try:
         import google.cloud.logging as gcl
+
         project = os.getenv("GCP_PROJECT_ID", "promptwars-495214")
         client = gcl.Client(project=project)
         _cloud_client = client.logger(_LOG_NAME)
@@ -66,11 +67,19 @@ def log_request(
     cloud = _get_cloud_logger()
     if cloud:
         try:
-            severity = "ERROR" if status_code >= 500 else "WARNING" if status_code >= 400 else "INFO"
+            severity = (
+                "ERROR"
+                if status_code >= 500
+                else "WARNING" if status_code >= 400 else "INFO"
+            )
             cloud.log_struct(payload, severity=severity)
             return
         except Exception as exc:
             _logger.debug("Cloud Logging write failed: %s", exc)
 
-    # Stdlib fallback
-    _logger.info("API %s %s → %d | %s", method, endpoint, status_code, payload)
+    # Stdlib fallback as structured JSON
+    import json
+
+    _logger.info(
+        "API %s %s → %d | %s", method, endpoint, status_code, json.dumps(payload)
+    )

@@ -33,6 +33,7 @@ class TTSRequest(BaseModel):
     def validate_language(cls, v: str) -> str:
         # Basic sanitization — allow only BCP-47 format
         import re
+
         if not re.match(r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$", v):
             return "en-US"
         return v

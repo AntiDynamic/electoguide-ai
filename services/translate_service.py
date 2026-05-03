@@ -36,6 +36,7 @@ def _is_available() -> bool:
         return _TRANSLATE_AVAILABLE
     try:
         from google.cloud import translate_v2  # noqa: F401
+
         creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
         _TRANSLATE_AVAILABLE = bool(creds and os.path.exists(creds))
     except ImportError:
@@ -45,7 +46,9 @@ def _is_available() -> bool:
     return _TRANSLATE_AVAILABLE
 
 
-async def translate_text(text: str, target_language: str, source_language: str = "en") -> dict:
+async def translate_text(
+    text: str, target_language: str, source_language: str = "en"
+) -> dict:
     """
     Translate text to the target language.
 
@@ -77,7 +80,9 @@ async def translate_text(text: str, target_language: str, source_language: str =
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(
             None,
-            lambda: client.translate(text, target_language=target_language, source_language=source_language),
+            lambda: client.translate(
+                text, target_language=target_language, source_language=source_language
+            ),
         )
         return {
             "translated_text": result["translatedText"],

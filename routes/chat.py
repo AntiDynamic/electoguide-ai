@@ -31,16 +31,17 @@ VALID_PERSONAS = {"student", "first_voter", "researcher", "senior", "general"}
 
 # ── Request / Response models ─────────────────────────────────────────────────
 
+
 class ChatMessage(BaseModel):
-    role: str  = Field(..., pattern="^(user|model)$")
+    role: str = Field(..., pattern="^(user|model)$")
     content: str = Field(..., min_length=1, max_length=2000)
 
 
 class ChatRequest(BaseModel):
-    message:    str                        = Field(..., min_length=1, max_length=2000)
-    history:    Optional[list[ChatMessage]] = Field(default=None, max_length=20)
-    persona:    str                        = Field(default="general")
-    session_id: Optional[str]              = Field(default=None, max_length=64)
+    message: str = Field(..., min_length=1, max_length=2000)
+    history: Optional[list[ChatMessage]] = Field(default=None, max_length=20)
+    persona: str = Field(default="general")
+    session_id: Optional[str] = Field(default=None, max_length=64)
 
     @field_validator("message")
     @classmethod
@@ -54,13 +55,14 @@ class ChatRequest(BaseModel):
 
 
 class ChatResponse(BaseModel):
-    response:   str
-    persona:    str
+    response: str
+    persona: str
     session_id: Optional[str] = None
-    entities:   list[str]     = []
+    entities: list[str] = []
 
 
 # ── Endpoint ──────────────────────────────────────────────────────────────────
+
 
 @router.post("/chat", response_model=ChatResponse)
 @limiter.limit("30/minute")
@@ -101,10 +103,14 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
         )
     except EnvironmentError as exc:
         logger.error("Configuration error: %s", exc)
-        raise HTTPException(status_code=503, detail="AI service not configured. Contact support.")
+        raise HTTPException(
+            status_code=503, detail="AI service not configured. Contact support."
+        )
     except Exception as exc:
         logger.exception("Unexpected error in /api/chat: %s", exc)
-        raise HTTPException(status_code=500, detail="An error occurred. Please try again.")
+        raise HTTPException(
+            status_code=500, detail="An error occurred. Please try again."
+        )
 
     # ── Persist to Firestore ─────────────────────────────────────────────────
     if body.session_id:

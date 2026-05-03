@@ -12,14 +12,14 @@ import logging
 import os
 from typing import Optional
 
+from async_lru import alru_cache
+
 logger = logging.getLogger(__name__)
 
 _NL_AVAILABLE: Optional[bool] = None
 
 # Entity types we care about for election context
-RELEVANT_TYPES = {
-    "LOCATION", "ORGANIZATION", "PERSON", "EVENT", "WORK_OF_ART", "OTHER"
-}
+RELEVANT_TYPES = {"LOCATION", "ORGANIZATION", "PERSON", "EVENT", "WORK_OF_ART", "OTHER"}
 
 
 def _is_available() -> bool:
@@ -28,6 +28,7 @@ def _is_available() -> bool:
         return _NL_AVAILABLE
     try:
         from google.cloud import language_v1  # noqa: F401
+
         creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "")
         _NL_AVAILABLE = bool(creds and os.path.exists(creds))
     except ImportError:
@@ -37,9 +38,10 @@ def _is_available() -> bool:
     return _NL_AVAILABLE
 
 
+@alru_cache(maxsize=100)
 async def extract_entities(text: str) -> list[str]:
     """
-    Extract named entities from user text using Cloud Natural Language API.
+    Extract meaningful entities (locations, orgs, events) from user text. using Cloud Natural Language API.
 
     Returns:
         List of entity name strings (e.g. ["United States", "Electoral College"]).
@@ -59,7 +61,10 @@ async def extract_entities(text: str) -> list[str]:
         )
 
         response = await client.analyze_entities(
-            request={"document": document, "encoding_type": language_v1.EncodingType.UTF8}
+            request={
+                "document": document,
+                "encoding_type": language_v1.EncodingType.UTF8,
+            }
         )
 
         entities = [
@@ -95,9 +100,7 @@ async def analyse_sentiment(text: str) -> dict:
             content=text[:1000],
             type_=language_v1.Document.Type.PLAIN_TEXT,
         )
-        response = await client.analyze_sentiment(
-            request={"document": document}
-        )
+        response = await client.analyze_sentiment(request={"document": document})
         return {
             "score": response.document_sentiment.score,
             "magnitude": response.document_sentiment.magnitude,
