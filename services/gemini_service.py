@@ -180,7 +180,6 @@ async def generate_chat_response(
         system, 
         temperature=0.7, 
         max_output_tokens=1024,
-        tools=[{"google_search": {}}]
     )
 
     # Build Gemini history
