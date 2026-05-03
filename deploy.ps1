@@ -61,7 +61,7 @@ gcloud run deploy $SERVICE_NAME `
     --cpu 1 `
     --min-instances 0 `
     --max-instances 10 `
-    --set-env-vars "GEMINI_API_KEY=$GEMINI_KEY,GEMINI_MODEL=gemini-3-flash-preview,GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production" `
+    --set-env-vars "GEMINI_API_KEY=$GEMINI_KEY,GEMINI_MODEL=gemini-3.1-flash-lite-preview,GCP_PROJECT_ID=$PROJECT_ID,ENVIRONMENT=production" `
     --project $PROJECT_ID
 
 # ── Step 5: Get service URL ───────────────────────────────────────────────────

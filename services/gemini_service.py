@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 # Use the model name specified in .env, falling back to gemini-3-flash-preview
-MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+MODEL_NAME = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-lite-preview")
 
 SAFETY_SETTINGS = [
     types.SafetySetting(
